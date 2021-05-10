@@ -1,0 +1,190 @@
+name: my_github_repo
+version: v0.0.1
+description: 'Porter bundle for the PaaS vNext demo'
+registry: ghcr.io/my_github_username
+dockerfile: Dockerfile.tmpl
+
+parameters:
+  - name: LOCATION
+    type: string
+    description: 'Azure region for the resource group and resources'
+  - name: NAME_PREFIX
+    type: string
+    description: 'Name prefix for Azure resources'
+  - name: POSTGRES_PASSWORD
+    type: string
+    sensitive: true
+    description: 'GitHub Secret used as password for the Postgres ad admin user'
+  - name: TEAMS_WEBHOOK_URL
+    type: string
+    description: 'Webhook for the Team Channel incoming webhoook'
+  - name: WEBAPI_NODE_ENV
+    type: string
+    description: 'node_environment variable for the webapi'
+  - name: KUBE_ENVIRONMENT_ID
+    type: string
+    description: 'kubeEnvironmentId to host the webapi on Arc'
+  - name: CUSTOM_LOCATION_ID
+    type: string
+    description: 'customLocationId for the kubeEnvironment'
+  - name: ARC_LOCATION
+    type: string
+    description: 'Location of the Arc resources - e.g. Web App'
+
+credentials:
+  - name: AZURE_CREDENTIALS
+    env: AZURE_CREDENTIALS
+
+outputs:
+  - name: WEB_API_HOSTNAME
+    type: string
+    applyTo:
+      - install
+    sensitive: false
+
+mixins:
+  - az
+  - exec
+
+install:
+  - exec:
+      description: 'Extracting deployment parameters...'
+      command: ./utils.sh
+      arguments:
+        - echo-azure-credentials
+      outputs:
+        - name: 'AZURE_DEPLOY_CLIENT_ID'
+          jsonPath: '$.clientId'
+        - name: 'AZURE_DEPLOY_CLIENT_SECRET'
+          jsonPath: '$.clientSecret'
+        - name: 'AZURE_DEPLOY_TENANT_ID'
+          jsonPath: '$.tenantId'
+        - name: 'AZURE_DEPLOY_SUBSCRIPTION_ID'
+          jsonPath: '$.subscriptionId'
+
+  - az:
+      description: 'Logging into Azure.'
+      arguments:
+        - login
+      flags:
+        service-principal:
+        username: '{{ bundle.outputs.AZURE_DEPLOY_CLIENT_ID }}'
+        password: '{{ bundle.outputs.AZURE_DEPLOY_CLIENT_SECRET }}'
+        tenant: '{{ bundle.outputs.AZURE_DEPLOY_TENANT_ID }}'
+        output: table
+
+  - az:
+      description: 'Setting subscription.'
+      arguments:
+        - account
+        - set
+      flags:
+        subscription: '{{ bundle.outputs.AZURE_DEPLOY_SUBSCRIPTION_ID }}'
+
+  - az:
+      description: 'Creating the Azure resource group if it does not exists.'
+      arguments:
+        - group
+        - create
+      flags:
+        name: '{{ bundle.parameters.NAME_PREFIX }}-reactjs-demo'
+        location: '{{ bundle.parameters.LOCATION }}'
+
+  - az:
+      description: 'Deploying the ARM template'
+      arguments:
+        - deployment
+        - group
+        - create
+      flags:
+        resource-group: '{{ bundle.parameters.NAME_PREFIX }}-reactjs-demo'
+        name: '{{ bundle.parameters.NAME_PREFIX }}-deployment'
+        template-file: 'output/arm/main.json'
+        parameters: '
+        location={{ bundle.parameters.LOCATION }}
+        name_prefix={{ bundle.parameters.NAME_PREFIX }}
+        postgres_adminPassword={{ bundle.parameters.POSTGRES_PASSWORD }}
+        teamsWebhookUrl={{ bundle.parameters.TEAMS_WEBHOOK_URL }} 
+        webapi_node_env={{ bundle.parameters.WEBAPI_NODE_ENV }}
+        kubeEnvironment_id={{ bundle.parameters.KUBE_ENVIRONMENT_ID}}
+        customLocation_id={{ bundle.parameters.CUSTOM_LOCATION_ID}}
+        arcLocation={{ bundle.parameters.ARC_LOCATION}}
+        '
+      outputs:
+        - name: 'WEBAPI_ID'
+          jsonPath: '$.properties.outputs.webapi_id.value'
+        - name: 'POSTGRES_HOST'
+          jsonPath: '$.properties.outputs.postgres_host.value'
+        - name: 'POSTGRES_USER'
+          jsonPath: '$.properties.outputs.postgres_user.value'
+        - name: 'POSTGRES_DB'
+          jsonPath: '$.properties.outputs.postgres_db.value'
+        - name: 'WEB_API_HOSTNAME'
+          jsonPath: '$.properties.outputs.webapi_hostname.value'
+        - name: 'FUNCTION_ID'
+          jsonPath: '$.properties.outputs.function_id.value'
+
+  - exec:
+      description: 'Unzip app directory'
+      command: unzip
+      arguments:
+      - '-q'
+      - output/app/webapi.zip
+      flags:
+        d: webapi
+
+  - exec:
+      command: ./db_migration.sh
+      description: 'Run database migration script'
+      arguments:
+        - '{{ bundle.outputs.POSTGRES_DB }}'
+        - '{{ bundle.outputs.POSTGRES_HOST }}'
+        - '{{ bundle.parameters.POSTGRES_PASSWORD }}'
+        - '{{ bundle.outputs.POSTGRES_USER }}@{{ bundle.outputs.POSTGRES_HOST }}'
+      suppress-output: false
+
+  - exec:
+      command: ./zip_deploy.sh
+      description: 'Deploy the Web API'
+      arguments:
+        - '{{ bundle.outputs.WEBAPI_ID }}'
+        - output/app/webapi.zip
+      suppress-output: false
+
+  - exec:
+      command: ./zip_deploy.sh
+      description: 'Deploy the Function'
+      arguments:
+        - '{{ bundle.outputs.FUNCTION_ID }}'
+        - output/function/function.zip
+      suppress-output: false
+
+  - az:
+      description: 'Configuring function with webapi URL'
+      arguments:
+        - webapp
+        - config
+        - appsettings
+        - set
+      flags:
+        ids: '{{ bundle.outputs.FUNCTION_ID }}'
+        settings: 'webApiUrl=https://{{ bundle.outputs.WEB_API_HOSTNAME }}'
+
+  - exec:
+      command: ./utils.sh
+      description: 'Deployment complete'
+      arguments:
+        - echo-web-api-hostname
+        - '{{ bundle.outputs.WEB_API_HOSTNAME }}'
+      suppress-output: false
+
+uninstall:
+  - az:
+      description: 'Deleting the entire resource group.'
+      arguments:
+        - group
+        - delete
+      flags:
+        name: '{{ bundle.parameters.NAME_PREFIX }}-reactjs-demo'
+        yes: ''
+        no-wait: ''

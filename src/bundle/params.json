@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0-DRAFT+TODO",
+  "name": "webapi-nodejs",
+  "created": "2021-01-13T14:13:54.796881+01:00",
+  "modified": "2021-01-13T14:13:54.796881+01:00",
+  "parameters": [
+    {
+      "name": "LOCATION",
+      "source": {
+        "env": "LOCATION"
+      }
+    },
+    {
+      "name": "NAME_PREFIX",
+      "source": {
+        "env": "NAME_PREFIX"
+      }
+    },
+    {
+      "name": "POSTGRES_PASSWORD",
+      "source": {
+        "env": "POSTGRES_PASSWORD"
+      }
+    },
+    {
+      "name": "TEAMS_WEBHOOK_URL",
+      "source": {
+        "env": "TEAMS_WEBHOOK_URL"
+      }
+    },
+    {
+      "name": "WEBAPI_NODE_ENV",
+      "source": {
+        "env": "WEBAPI_NODE_ENV"
+      }
+    },
+    {
+      "name": "KUBE_ENVIRONMENT_ID",
+      "source": {
+        "env": "KUBE_ENVIRONMENT_ID"
+      }
+    },
+    {
+      "name": "CUSTOM_LOCATION_ID",
+      "source": {
+        "env": "CUSTOM_LOCATION_ID"
+      }
+    },
+    {
+      "name": "ARC_LOCATION",
+      "source": {
+        "env": "ARC_LOCATION"
+      }
+    }
+    ]
+  }

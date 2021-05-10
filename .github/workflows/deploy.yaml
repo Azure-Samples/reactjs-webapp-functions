@@ -1,0 +1,116 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    # Trigger the workflow everytime the build workflow ran to completion
+  workflow_run:
+    workflows:
+      - Build
+    types:
+      - completed
+  # Triggers when an environment file has been changed  
+  push:
+    paths:
+      - "environments/**"
+      - ".github/workflows/deploy.yaml"
+
+jobs:
+  build_environment_matrix:
+    name: 'Evaluate and initate deployments'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - run: git branch
+      - run: env
+      - name: Install yq
+        run: |
+          sudo wget -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.5.0/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+      - name: Get yaml to matrix
+        run: |
+          echo "::set-output name=AZURE_ENVIRONMENTS::"$(yq e '{"include": .}' ./environments/environments.yaml -j)""
+        id: check_environment_files
+      - name: Echo output to log
+        run: |
+          echo $AZURE_ENVIRONMENTS
+    outputs:
+      matrix: ${{ steps.check_environment_files.outputs.AZURE_ENVIRONMENTS }}
+
+  deploy_bundle:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == null }}
+    name: 'Deploy bundle'
+    needs: build_environment_matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.build_environment_matrix.outputs.matrix) }}
+    steps:
+      - name: Write output to log
+        run: |
+          echo "Deploying ${{ matrix.deploys.version }} to ${{ matrix.name }} in ${{ matrix.config.AZURE_LOCATION }}"
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Porter
+        uses: getporter/gh-action@v0.1.3
+      - name: Login to GitHub Packages OCI Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.PACKAGE_ADMIN }}
+      - name: Get registry and image name
+        run: |
+          echo IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]' | cut -d'/' -f 2) >> $GITHUB_ENV
+          echo BUNDLE_REGISTRY=ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+        working-directory: ./src/bundle
+      - name: Get incoming bundle digest
+        run: |
+          echo BUNDLE_DIGEST_INCOMING=$(porter inspect --reference $BUNDLE_REGISTRY/$IMAGE_NAME:${{ matrix.deploys.version }} -o yaml | awk '$1 == "contentDigest:" {print $2}') >> $GITHUB_ENV
+      - name: Get incoming config digest
+        run: |
+          echo CONFIG_DIGEST_INCOMING=$(echo -n "${{ toJSON(matrix.config) }}" | sha256sum) >> $GITHUB_ENV
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }} 
+      - name: Get deployed bundle digest
+        run: |
+          RG_NAME=${{ matrix.config.AZURE_NAME_PREFIX }}-reactjs-demo
+          echo BUNDLE_DIGEST_DEPLOYED=$(az group show --name $RG_NAME | jq .tags.bundle_digest -r) >> $GITHUB_ENV
+      - name: Get deployed config digest
+        run: |
+          RG_NAME=${{ matrix.config.AZURE_NAME_PREFIX }}-reactjs-demo
+          echo CONFIG_DIGEST_DEPLOYED=$(az group show --name $RG_NAME | jq .tags.config_digest -r) >> $GITHUB_ENV
+      - name: Output digests to compare to log
+        run: |
+          echo Bundle digest:
+          echo  - deployed: $BUNDLE_DIGEST_DEPLOYED
+          echo  - incoming: $BUNDLE_DIGEST_INCOMING
+          echo Config digest:
+          echo  - deployed: $CONFIG_DIGEST_DEPLOYED
+          echo  - incoming: $CONFIG_DIGEST_INCOMING
+      - name: Nothing to update
+        if: (env.BUNDLE_DIGEST_DEPLOYED == env.BUNDLE_DIGEST_INCOMING) && (env.CONFIG_DIGEST_DEPLOYED == env.CONFIG_DIGEST_INCOMING)
+        run: |
+          echo "Environment already up to date"
+      - name: Install
+        if: (env.BUNDLE_DIGEST_DEPLOYED != env.BUNDLE_DIGEST_INCOMING) || (env.CONFIG_DIGEST_DEPLOYED != env.CONFIG_DIGEST_INCOMING)
+        run: |
+          porter install --tag $BUNDLE_REGISTRY/$IMAGE_NAME:${{ matrix.deploys.version }} --cred ./creds.json --parameter-set ./params.json
+        working-directory: ./src/bundle
+        env:
+          LOCATION: ${{ matrix.config.AZURE_LOCATION }}
+          NAME_PREFIX: ${{ matrix.config.AZURE_NAME_PREFIX }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_DB_ADMIN_PASSWORD }}
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          WEBAPI_NODE_ENV: ${{ matrix.config.WEBAPI_NODE_ENV }}
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+          ARC_LOCATION: ${{ matrix.config.ARC_LOCATION }}
+          CUSTOM_LOCATION_ID: ${{ matrix.config.CUSTOM_LOCATION_ID }}
+          KUBE_ENVIRONMENT_ID: ${{ matrix.config.KUBE_ENVIRONMENT_ID }}
+
+      - name: Update tag
+        if: (env.BUNDLE_DIGEST_DEPLOYED != env.BUNDLE_DIGEST_INCOMING) || (env.CONFIG_DIGEST_DEPLOYED != env.CONFIG_DIGEST_INCOMING)
+        run: |
+          az group update --name ${{ matrix.config.AZURE_NAME_PREFIX }}-reactjs-demo --tags bundle_digest="${{ env.BUNDLE_DIGEST_INCOMING }}" config_digest="${{ env.CONFIG_DIGEST_INCOMING}}"

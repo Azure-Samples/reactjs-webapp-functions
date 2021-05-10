@@ -1,0 +1,57 @@
+{
+  "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Debug Full App",
+      "configurations": [
+        "Debug Web App",
+        "Attach to Node Functions"
+      ],
+      "presentation": {
+        "hidden": false,
+        "order": 1
+      }
+    }
+  ],
+  "configurations": [
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "Debug Web App",
+      "program": "${workspaceFolder}/src/webapp/server/server.js",
+      "internalConsoleOptions": "openOnSessionStart",
+      "envFile": "${workspaceFolder}/.local/.env",
+      "preLaunchTask": "make: build",
+      "serverReadyAction": {
+        "pattern": "Server now listening on ([0-9]+)",
+        "uriFormat": "http://localhost:%s",
+        "action": "openExternally"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Web Server Tests",
+      "program": "${workspaceFolder}/src/webapp/server/node_modules/mocha/bin/_mocha",
+      "args": [
+        "--timeout",
+        "999999",
+        "--colors",
+        "${workspaceFolder}/src/webapp/server/test"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": [
+        "<node_internals>/**/*.js"
+      ],
+      "preLaunchTask": "make: build"
+    },
+    {
+      "name": "Attach to Node Functions",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "preLaunchTask": "func: host start"
+    }
+  ]
+}

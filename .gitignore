@@ -1,0 +1,13 @@
+
+# Mac finder
+.DS_Store
+
+# All ndoe modules
+node_modules
+
+# bicep compiled ARM files are ignored
+/src/arm/*.json
+
+# local tmp store
+.local/
+.azurite/

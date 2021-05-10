@@ -1,0 +1,145 @@
+name: Build
+ 
+on:
+  workflow_dispatch:
+  #push:
+  #  paths:
+  #    - "src/**"
+  #    - ".github/workflows/build.yaml"
+
+jobs:
+  build_webapp:
+    name: 'Build WebAPI'
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:latest
+        volumes:
+          - postgres-data:/var/lib/postgresql/data
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+        options: --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Use Node.js 14
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+      - name: Test
+        run: make test
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: postgres
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          NODE_ENV: development
+      - name: Build for production
+        run: make build
+      - name: Package webapi
+        run: (cd src/webapp/server; zip -r ../../../webapi.zip .)
+      - name: Upload app zip package
+        uses: actions/upload-artifact@v2
+        with:
+          name: app
+          path: ./webapi.zip
+          retention-days: 1
+
+  build_function:
+    name: 'Build Function'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Use Node.js 14
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+      - name: Build for production
+        run: |
+          npm install --prefix src/function/
+          npm run build --prefix src/function/
+      - name: Test
+        run: npm test --prefix src/function/
+      - name: Package function
+        run: (cd src/function; zip -r ../../function.zip .)
+      - name: Upload app zip package
+        uses: actions/upload-artifact@v2
+        with:
+          name: function
+          path: ./function.zip
+          retention-days: 1
+
+  build_bicep:
+    name: 'Build Bicep to ARM'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up bicep
+        run: |
+          # Download CLI (7aca810747) https://github.com/Azure/bicep/suites/2816103963/artifacts/62679913
+          # Using nightly.link because GitHub requires authentication to download artifacts --> https://github.com/actions/upload-artifact/issues/51
+          curl -L https://nightly.link/Azure/bicep/actions/artifacts/62679913.zip --output bicep.zip
+          # Unzip, move to bin and mark it as executable
+          sudo unzip bicep.zip bicep -d /usr/local/bin && sudo chmod +x /usr/local/bin/bicep
+      - name: Build bicep
+        run: bicep build main.bicep
+        working-directory: ./src/arm
+      - name: Upload compiled arm template
+        uses: actions/upload-artifact@v2
+        with:
+          name: arm
+          path: ./src/arm/main.json
+          retention-days: 1
+
+  build_and_publish_porter_bundle:
+    name: 'Build and Publish Porter bundle'
+    runs-on: ubuntu-latest
+    needs: [build_webapp, build_bicep, build_function]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Get application artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: ./src/bundle/output
+      - name: Display bundle directory
+        run: ls -R
+        working-directory: ./src/bundle
+      - name: Setup Porter
+        uses: getporter/gh-action@v0.1.3
+      - name: Prepare bundle metadata (part I)
+        run: |
+          echo IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]' | cut -d'/' -f 2) >> $GITHUB_ENV
+          echo BUNDLE_MAIN_VERSION=$(cat porter.yaml | awk '$1 == "version:" {print $2}') >> $GITHUB_ENV
+          echo BUNDLE_REGISTRY=ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+        working-directory: ./src/bundle
+      - name: Prepare bundle metadata (part II)
+        run: |
+          echo BUNDLE_VERSION=$BUNDLE_MAIN_VERSION-$GITHUB_SHA >> $GITHUB_ENV
+      - name: Build Porter bundle
+        run: porter build --name "$IMAGE_NAME" --version "$BUNDLE_VERSION"
+        working-directory: ./src/bundle
+      - name: Login to GitHub Packages OCI Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.PACKAGE_ADMIN }}
+      - name: Porter publish
+        run: porter publish --registry "$BUNDLE_REGISTRY"
+        working-directory: ./src/bundle
+      - name: Create copies for latest reference
+        run: |
+          porter copy --source "${BUNDLE_REGISTRY}/${IMAGE_NAME}:${BUNDLE_VERSION}" --destination "${BUNDLE_REGISTRY}/${IMAGE_NAME}:latest"
+          porter copy --source "${BUNDLE_REGISTRY}/${IMAGE_NAME}:${BUNDLE_VERSION}" --destination "${BUNDLE_REGISTRY}/${IMAGE_NAME}:${BUNDLE_MAIN_VERSION}-latest"
+        working-directory: ./src/bundle

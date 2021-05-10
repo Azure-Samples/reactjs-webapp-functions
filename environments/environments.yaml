@@ -1,0 +1,20 @@
+- name: cloud
+  deploys:
+    version: "latest"
+  config:
+    AZURE_LOCATION: "westeurope"
+    AZURE_NAME_PREFIX: "validate-azure"
+    WEBAPI_NODE_ENV: "production"
+    KUBE_ENVIRONMENT_ID: ""
+    CUSTOM_LOCATION_ID: ""
+    ARC_LOCATION: "eastus"
+#- name: onprem
+#  deploys:
+#    version: "v0.0.1-latest"
+#  config:
+#    AZURE_LOCATION: "eastus"
+#    AZURE_NAME_PREFIX: "validate-arc-2"
+#    WEBAPI_NODE_ENV: "production"
+#    KUBE_ENVIRONMENT_ID: ""
+#    CUSTOM_LOCATION_ID: ""
+#    ARC_LOCATION: "eastus"
