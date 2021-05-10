@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../src/function"
+		},
+		{
+			"path": "../src/workflow"
+		},
+		{
+			"path": "../src/webapp"
+		}
+	],
+	"settings": {
+		"debug.internalConsoleOptions": "neverOpen",
+		"azurite.silent": true
+	}
+}

@@ -1,0 +1,93 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "command": "make test",
+      "group": "test",
+      "label": "make: test"
+    },
+    {
+      "type": "shell",
+      "command": "make start",
+      "group": "none",
+      "label": "make: start"
+    },
+    {
+      "type": "shell",
+      "command": "make build",
+      "group": "build",
+      "label": "make: build"
+    },
+    {
+      "type": "shell",
+      "command": "make clean",
+      "group": "none",
+      "label": "make: clean"
+    },
+    {
+      "type": "shell",
+      "command": "make migrate_db",
+      "group": "none",
+      "label": "make: migrate_db"
+    },
+    {
+      "type": "shell",
+      "command": "make seed_db",
+      "group": "none",
+      "label": "make: seed_db"
+    },
+    {
+      "type": "shell",
+      "command": "make remove_db",
+      "group": "none",
+      "label": "make: remove_db"
+    },
+    {
+      "type": "func",
+      "command": "host start",
+      "problemMatcher": "$func-node-watch",
+      "isBackground": true,
+      "dependsOn": "function: npm build",
+      "options": {
+        "cwd": "${workspaceFolder}/src/function"
+      }
+    },
+    {
+      "type": "shell",
+      "label": "function: npm build",
+      "command": "npm run build",
+      "dependsOn": "npm install",
+      "problemMatcher": "$tsc",
+      "options": {
+        "cwd": "${workspaceFolder}/src/function"
+      }
+    },
+    {
+      "type": "shell",
+      "label": "function: npm install",
+      "command": "npm install",
+      "options": {
+        "cwd": "${workspaceFolder}/src/function"
+      }
+    },
+    {
+      "type": "shell",
+      "label": "function: npm prune",
+      "command": "npm prune --production",
+      "dependsOn": "npm build",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/src/function"
+      }
+    },
+    {
+      "type": "shell",
+      "label": "webapp: npm start",
+      "command": "npm start",
+      "options": {
+        "cwd": "${workspaceFolder}/src/webapp"
+      }
+    },
+  ]
+}

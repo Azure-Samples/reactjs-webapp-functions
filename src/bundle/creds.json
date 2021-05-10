@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0-DRAFT+b6c701f",
+  "name": "webapi-nodejs",
+  "created": "2021-01-13T14:11:02.294453+01:00",
+  "modified": "2021-01-13T14:11:02.294453+01:00",
+  "credentials": [
+    {
+      "name": "AZURE_CREDENTIALS",
+      "source": {
+        "env": "AZURE_CREDENTIALS"
+      }
+    }
+  ]
+}

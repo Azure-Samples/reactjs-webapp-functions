@@ -1,0 +1,28 @@
+{
+  // Use IntelliSense to learn about possible Node.js debug attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Launch React and Express",
+      "configurations": ["Launch React", "Launch Express"]
+    }
+  ],
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch React",
+      "preLaunchTask": "npm: start",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceRoot}/src"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Express",
+      "program": "${workspaceRoot}/server/server.js"
+    }
+  ]
+}
