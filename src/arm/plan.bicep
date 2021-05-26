@@ -1,35 +1,44 @@
 param name_prefix string
 param location string
-param is_kubeEnvironment bool = false
-param kubeEnvironment_id string
+param arcLocation string
+param customLocationId string
+param kubeEnvironmentId string
 
 var webfarm_name = '${name_prefix}-webfarm-${uniqueString(resourceGroup().id)}'
 
-resource webapi_farm_azure 'Microsoft.Web/serverfarms@2020-06-01' = if (!is_kubeEnvironment) {
-  name: concat(webfarm_name, '-azure')
+resource webapi_farm_azure 'Microsoft.Web/serverfarms@2020-06-01' = if (customLocationId == '') {
+  name: webfarm_name
   location: location
   kind: 'linux'
   sku: {
-    name: 'P1V2'
+    name: 'B1'
   }
   properties: {
     reserved: true
   }
 }
 
-resource webapi_farm_arc 'Microsoft.Web/serverfarms@2020-06-01' = if (is_kubeEnvironment) {
-  name: concat(webfarm_name, '-arc')
-  location: location
-  kind: 'K8SE'
+resource webapi_farm_arc 'Microsoft.Web/serverfarms@2020-12-01' = if (customLocationId != '') {
+  name: concat(webfarm_name, 'arc')
+  location: arcLocation
+  kind: 'linux,kubernetes'
   sku: {
-    name: 'B1'
-    tier: 'ANY'
+    name: 'K1'
+    tier: 'Kubernetes'
+    capacity: 1
+  }
+  extendedLocation: {
+    type: 'CustomLocation'
+    name: customLocationId
   }
   properties: {
+    reserved: true
+    perSiteScaling: true
+    isXenon: false
     kubeEnvironmentProfile: {
-      id: kubeEnvironment_id
+      id: kubeEnvironmentId
     }
   }
 }
 
-output plan_id string = !is_kubeEnvironment ? webapi_farm_azure.id : webapi_farm_arc.id
+output plan_id string = customLocationId == '' ? webapi_farm_azure.id : webapi_farm_arc.id

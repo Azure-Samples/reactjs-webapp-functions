@@ -11,9 +11,6 @@ parameters:
   - name: NAME_PREFIX
     type: string
     description: 'Name prefix for Azure resources'
-  - name: APP_SERVICE_KUBERNETES_ENVIRONMENT_ID
-    type: string
-    description: 'App Service Kubernetes Environment resource ID'
   - name: POSTGRES_PASSWORD
     type: string
     sensitive: true
@@ -24,6 +21,15 @@ parameters:
   - name: WEBAPI_NODE_ENV
     type: string
     description: 'node_environment variable for the webapi'
+  - name: KUBE_ENVIRONMENT_ID
+    type: string
+    description: 'kubeEnvironmentId to host the webapi on Arc'
+  - name: CUSTOM_LOCATION_ID
+    type: string
+    description: 'customLocationId for the kubeEnvironment'
+  - name: ARC_LOCATION
+    type: string
+    description: 'Location of the Arc resources - e.g. Web App'
 
 credentials:
   - name: AZURE_CREDENTIALS
@@ -97,10 +103,12 @@ install:
         parameters: '
         location={{ bundle.parameters.LOCATION }}
         name_prefix={{ bundle.parameters.NAME_PREFIX }}
-        kubeEnvironment_id={{ bundle.parameters.APP_SERVICE_KUBERNETES_ENVIRONMENT_ID }}
         postgres_adminPassword={{ bundle.parameters.POSTGRES_PASSWORD }}
         teamsWebhookUrl={{ bundle.parameters.TEAMS_WEBHOOK_URL }} 
         webapi_node_env={{ bundle.parameters.WEBAPI_NODE_ENV }}
+        kubeEnvironment_id={{ bundle.parameters.KUBE_ENVIRONMENT_ID}}
+        customLocation_id={{ bundle.parameters.CUSTOM_LOCATION_ID}}
+        arcLocation={{ bundle.parameters.ARC_LOCATION}}
         '
       outputs:
         - name: 'WEBAPI_ID'

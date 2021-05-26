@@ -102,11 +102,14 @@ jobs:
         env:
           LOCATION: ${{ matrix.config.AZURE_LOCATION }}
           NAME_PREFIX: ${{ matrix.config.AZURE_NAME_PREFIX }}
-          APP_SERVICE_KUBERNETES_ENVIRONMENT_ID: ${{ matrix.config.APP_SERVICE_KUBERNETES_ENVIRONMENT_ID }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_DB_ADMIN_PASSWORD }}
           TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
           WEBAPI_NODE_ENV: ${{ matrix.config.WEBAPI_NODE_ENV }}
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+          ARC_LOCATION: ${{ matrix.config.ARC_LOCATION }}
+          CUSTOM_LOCATION_ID: ${{ matrix.config.CUSTOM_LOCATION_ID }}
+          KUBE_ENVIRONMENT_ID: ${{ matrix.config.KUBE_ENVIRONMENT_ID }}
+
       - name: Update tag
         if: (env.BUNDLE_DIGEST_DEPLOYED != env.BUNDLE_DIGEST_INCOMING) || (env.CONFIG_DIGEST_DEPLOYED != env.CONFIG_DIGEST_INCOMING)
         run: |
