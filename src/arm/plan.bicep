@@ -11,7 +11,7 @@ resource webapi_farm_azure 'Microsoft.Web/serverfarms@2020-06-01' = if (customLo
   location: location
   kind: 'linux'
   sku: {
-    name: 'B1'
+    name: 'P1V2'
   }
   properties: {
     reserved: true

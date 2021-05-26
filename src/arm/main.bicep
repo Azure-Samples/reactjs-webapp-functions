@@ -38,24 +38,6 @@ module plan './plan.bicep' = {
   }
 }
 
-/* module planAzure './planAzure.bicep' = if (customLocation_id == '') {
-  name: 'plan_azure_deploy'
-  params:{
-    location: location
-    name_prefix: name_prefix
-  }
-}
-
-module planArc './planArc.bicep' = if (customLocation_id != '') {
-  name: 'plan_arc_deploy'
-  params:{
-    location: arcLocation
-    name_prefix: name_prefix
-    customLocationId: customLocation_id
-    kubeEnvironmentId: kubeEnvironment_id
-  }
-} */
-
 module function './function.bicep' = {
   name: 'function_deploy'
   params:{
@@ -69,31 +51,6 @@ module function './function.bicep' = {
     customLocationId: customLocation_id
   }
 }
-
-/* module functionAzure './functionAzure.bicep' = if (customLocation_id == '') {
-  name: 'function_azure_deploy'
-  params:{
-    location: location
-    name_prefix: name_prefix
-    workspace_id: monitoring.outputs.workspace_id
-    appSettings_insights_key: monitoring.outputs.instrumentation_key
-    webapp_plan: planAzure.outputs.plan_id
-    teamsWebhookUrl: teamsWebhookUrl
-  }
-}
-
-module functionArc './functionArc.bicep' = if (customLocation_id == '') {
-  name: 'function_arc_deploy'
-  params:{
-    location: arcLocation
-    name_prefix: name_prefix
-    workspace_id: monitoring.outputs.workspace_id
-    appSettings_insights_key: monitoring.outputs.instrumentation_key
-    webapp_plan: planAzure.outputs.plan_id
-    teamsWebhookUrl: teamsWebhookUrl
-    customLocationId: customLocation_id
-  }
-} */
 
 module webapi './webapp.bicep' = {
   name: 'webapp_deploy'
@@ -113,41 +70,6 @@ module webapi './webapp.bicep' = {
     appSettings_eventgridurl: function.outputs.url
   }
 }
-
-/* module webapiAzure './webappAzure.bicep' = if (customLocation_id == '') {
-  name: 'webapp_azure_deploy'
-  params:{
-    location: location
-    name_prefix: name_prefix
-    plan_id: planAzure.outputs.plan_id
-    workspace_id: monitoring.outputs.workspace_id
-    appSettings_pghost: postgres.outputs.pg_host
-    appSettings_pguser: postgres.outputs.pg_user
-    appSettings_pgdb: postgres.outputs.pg_db
-    appSettings_node_env: webapi_node_env
-    appSettings_pgpassword: postgres_adminPassword
-    appSettings_insights_key: monitoring.outputs.instrumentation_key
-    appSettings_eventgridurl: functionAzure.outputs.url
-  }
-}
-
-module webapiArc './webappArc.bicep' = if (customLocation_id == '') {
-  name: 'webapp_arc_deploy'
-  params:{
-    location: arcLocation
-    name_prefix: name_prefix
-    plan_id: planAzure.outputs.plan_id
-    workspace_id: monitoring.outputs.workspace_id
-    customLocationId: customLocation_id
-    appSettings_pghost: postgres.outputs.pg_host
-    appSettings_pguser: postgres.outputs.pg_user
-    appSettings_pgdb: postgres.outputs.pg_db
-    appSettings_node_env: webapi_node_env
-    appSettings_pgpassword: postgres_adminPassword
-    appSettings_insights_key: monitoring.outputs.instrumentation_key
-    appSettings_eventgridurl: functionAzure.outputs.url
-  }
-} */
 
 output webapi_id string = webapi.outputs.webapi_id
 output webapi_hostname string = webapi.outputs.webapi_hostname
