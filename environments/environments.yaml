@@ -5,11 +5,16 @@
     AZURE_LOCATION: "westeurope"
     AZURE_NAME_PREFIX: "validate-azure"
     WEBAPI_NODE_ENV: "production"
-- name: onprem
-  deploys:
-    version: "v0.0.1-latest"
-  config:
-    AZURE_LOCATION: "centraluseuap"
-    AZURE_NAME_PREFIX: "validate-arc-2"
-    WEBAPI_NODE_ENV: "production"
-    APP_SERVICE_KUBERNETES_ENVIRONMENT_ID: "/subscriptions/c484c80e-0a6f-4470-86de-697ecee16984/resourceGroups/react-val-lima-rg/providers/Microsoft.Web/kubeEnvironments/react-val-kube"
+    KUBE_ENVIRONMENT_ID: ""
+    CUSTOM_LOCATION_ID: ""
+    ARC_LOCATION: "eastus"
+#- name: onprem
+#  deploys:
+#    version: "v0.0.1-latest"
+#  config:
+#    AZURE_LOCATION: "eastus"
+#    AZURE_NAME_PREFIX: "validate-arc-2"
+#    WEBAPI_NODE_ENV: "production"
+#    KUBE_ENVIRONMENT_ID: ""
+#    CUSTOM_LOCATION_ID: ""
+#    ARC_LOCATION: "eastus"

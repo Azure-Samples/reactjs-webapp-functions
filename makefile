@@ -24,12 +24,15 @@ clean :
 
 .PHONY: build
 build : install
-	npm run build --prefix $(webapp_dir)
+	npm run build --prefix $(webapp_dir) & \
+	npm run build --prefix $(webapp_dir)/server & \
+	npm run build --prefix $(function_dir)
 
 .PHONY: install
 install :
 	npm install --prefix $(webapp_dir) & \
 	npm install --prefix $(webapp_dir)/server & \
+	npm install --prefix $(function_dir) & \
 	wait
 
 .PHONY: migrate_db
@@ -48,7 +51,7 @@ remove_db :
 zip_it :
 	cd $(webapp_dir)/server; zip -r ../../../webapi.zip .; cd ../../../
 	cd $(function_dir); zip -r ../../function.zip .; cd ../../
-	az bicep build --files src/arm/main.bicep
+	bicep build src/arm/main.bicep
 	mkdir -p src/bundle/output/app && mv webapi.zip src/bundle/output/app/webapi.zip -f
 	mkdir -p src/bundle/output/function && mv function.zip src/bundle/output/function/function.zip -f
 	mkdir -p src/bundle/output/arm && mv src/arm/main.json src/bundle/output/arm/main.json -f

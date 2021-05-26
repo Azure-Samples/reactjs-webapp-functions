@@ -86,12 +86,11 @@ jobs:
         uses: actions/checkout@v2
       - name: Set up bicep
         run: |
-          # Fetch the latest Bicep CLI binary
-          curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
-          # Mark it as executable
-          chmod +x ./bicep
-          # Add bicep to your PATH (requires admin)
-          sudo mv ./bicep /usr/local/bin/bicep
+          # Download CLI (7aca810747) https://github.com/Azure/bicep/suites/2816103963/artifacts/62679913
+          # Using nightly.link because GitHub requires authentication to download artifacts --> https://github.com/actions/upload-artifact/issues/51
+          curl -L https://nightly.link/Azure/bicep/actions/artifacts/62679913.zip --output bicep.zip
+          # Unzip, move to bin and mark it as executable
+          sudo unzip bicep.zip bicep -d /usr/local/bin && sudo chmod +x /usr/local/bin/bicep
       - name: Build bicep
         run: bicep build main.bicep
         working-directory: ./src/arm
