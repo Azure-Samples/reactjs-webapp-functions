@@ -19,7 +19,7 @@ In order to deploy the application and all the required resources, checkin a cha
 
 ## Required to get started
 
-1. Setup an ARC-enabled Kubernetes cluster, by following [these instructions](https://github.com/microsoft/Azure-App-Service-on-Azure-Arc/blob/main/docs/getting-started/setup.md). The [src/ARC/lima-setup.sh](src/ARC/lima-setup.sh) script can help, but check the setup instructions in the above link, as these change frequently.
+1. Setup an ARC-enabled Kubernetes cluster, by following [these instructions](https://github.com/microsoft/Azure-App-Service-on-Azure-Arc/blob/main/docs/getting-started/setup.md). The [src/arc/lima-setup.sh](src/arc/lima-setup.sh) script can help, but check the setup instructions in the above link, as these change frequently.
 
 1. Enable CNAB bundle support in GitHub
     1. Follow [this guide](https://docs.github.com/en/free-pro-team@latest/packages/guides/enabling-improved-container-support) to enable support for CNAB on GitHub
