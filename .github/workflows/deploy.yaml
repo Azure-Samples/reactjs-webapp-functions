@@ -29,7 +29,7 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
       - name: Get yaml to matrix
         run: |
-          echo "::set-output name=AZURE_ENVIRONMENTS::"$(yq e '{"include": .}' ./environments/environments.yaml -j)""
+          echo "AZURE_ENVIRONMENTS="$(yq e '{"include": .}' ./environments/environments.yaml -j)"" >> "$GITHUB_OUTPUT"
         id: check_environment_files
       - name: Echo output to log
         run: |
